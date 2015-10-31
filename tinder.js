@@ -8,7 +8,7 @@ var util = require('util');
  * @constructor
  * @this {TinderClient}
  */
-function TinderClient() {
+function TinderClient(){
   var xAuthToken = null;
   this.lastActivity = new Date();
   var _this = this;
@@ -23,7 +23,7 @@ function TinderClient() {
    * @param path {String} path the relative URI path
    * @param data {Object} an object of extra values
    */
-  var getRequestOptions = function(path, data) {
+  var getRequestOptions = function(path, data){
     var options = {
       url: TINDER_HOST + path,
       json: data
@@ -52,7 +52,7 @@ function TinderClient() {
    * @param {Object} data an object containing extra values
    * @param {Function} callback the callback to invoke when the request completes
    */
-  var tinderGet = function(path, data, callback) {
+  var tinderGet = function(path, data, callback){
     var opts = getRequestOptions(path, data);
     opts.method = 'GET';
     request(opts, callback);
@@ -64,7 +64,7 @@ function TinderClient() {
    * @param {Object} data an object containing extra values
    * @param {Function} callback the callback to invoke when the request completes
    */
-  var tinderPost = function(path, data, callback) {
+  var tinderPost = function(path, data, callback){
     var opts = getRequestOptions(path, data);
     opts.method = 'POST';
     request(opts, callback);
@@ -74,7 +74,7 @@ function TinderClient() {
    * Helper for transforming the request callback values
    * @param {Function} callback the callback
    */
-  var makeTinderCallback = function(callback) {
+  var makeTinderCallback = function(callback){
     return function(error, res, body) {
       var data = null;
 
@@ -108,7 +108,7 @@ function TinderClient() {
    * @param {Number} limit the maximum number of profiles to fetch
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.getRecommendations = function(limit, callback) {
+  this.getRecommendations = function(limit, callback){
     tinderGet('user/recs',
       {
         limit: limit
@@ -122,7 +122,7 @@ function TinderClient() {
    * @param {String} message the message to send
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.sendMessage = function(matchId, message, callback) {
+  this.sendMessage = function(matchId, message, callback){
     tinderPost('user/matches/' + matchId,
       {
         message: message
@@ -135,7 +135,7 @@ function TinderClient() {
    * @param {String} userId the id of the user
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.pass = function(userId, callback) {
+  this.pass = function(userId, callback){
     tinderGet('pass/' + userId,
       null,
       makeTinderCallback(callback));
@@ -146,7 +146,7 @@ function TinderClient() {
    * @param {String} userId the id of the user
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.like = function(userId, callback) {
+  this.like = function(userId, callback){
     tinderGet('like/' + userId,
       null,
       makeTinderCallback(callback));
@@ -158,7 +158,7 @@ function TinderClient() {
    * @param {String} fbId the Facebook user id.
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.authorize = function(fbToken, fbId, callback) {
+  this.authorize = function(fbToken, fbId, callback){
     tinderPost('auth',
       {
         facebook_token: fbToken,
@@ -181,11 +181,11 @@ function TinderClient() {
   /**
    * Set auth token if you have it saved, no need to do fb login every time
    */
-  this.setAuthToken = function(token) {
+  this.setAuthToken = function(token){
     xAuthToken = token;
   };
 
-  this.getAuthToken = function() {
+  this.getAuthToken = function(){
     return xAuthToken;
   };
 
@@ -193,7 +193,7 @@ function TinderClient() {
    * Returns whether this client is authorized
    * @return whether or not this client is authorized
    */
-  this.isAuthorized = function() {
+  this.isAuthorized = function(){
     return xAuthToken != null;
   }
 
@@ -202,7 +202,7 @@ function TinderClient() {
    * Returns client information and globals
    * Globals are used for interacting with tinder api limits
    */
-  this.getDefaults = function() {
+  this.getDefaults = function(){
     return _this.defaults;
   }
 
@@ -210,7 +210,7 @@ function TinderClient() {
    * Gets a list of new updates. This will be things like new messages, people who liked you, etc.
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.getUpdates = function(callback) {
+  this.getUpdates = function(callback){
     tinderPost('updates',
       {
         last_activity_date: _this.lastActivity.toISOString()
@@ -236,7 +236,7 @@ function TinderClient() {
    * incremental updates
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.getHistory = function(last_activity_date, callback) {
+  this.getHistory = function(last_activity_date, callback){
     if (typeof last_activity_date === 'undefined') { optionalArg = ''; }
     tinderPost('updates',
       {
@@ -251,7 +251,7 @@ function TinderClient() {
    * @param {Number} lat the latitutde
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.updatePosition = function(lon, lat, callback) {
+  this.updatePosition = function(lon, lat, callback){
     tinderPost('user/ping',
       {
         lon: lon,
@@ -271,7 +271,7 @@ function TinderClient() {
       makeTinderCallback(callback));
   };
 
-  this.getProfile = function(callback) {
+  this.getProfile = function(callback){
     tinderGet('profile',
       null,
       makeTinderCallback(callback));
@@ -285,7 +285,7 @@ function TinderClient() {
  * @constructor
  * @this {AuthError}
  */
-function AuthError(message, extra) {
+function AuthError(message, extra){
     Error.captureStackTrace && Error.captureStackTrace(this, this.constructor);
     this.name = this.constructor.name;
     this.message = message;
