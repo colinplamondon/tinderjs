@@ -1,52 +1,56 @@
-var TINDER_HOST = "https://api.gotinder.com";
+var TINDER_HOST = "https://api.gotinder.com/";
 var request = require('request');
+var util = require('util');
 
 /**
  * Constructs a new instance of the TinderClient class
- * 
+ *
  * @constructor
  * @this {TinderClient}
  */
 function TinderClient() {
   var xAuthToken = null;
-  var lastActivity = new Date();
+  this.lastActivity = new Date();
   var _this = this;
-  
+
   /**
    * The current profile's user id
    */
   this.userId = null;
-  
+
   /**
-   * Helper for getting the request object 
+   * Helper for getting the request object
    * @param path {String} path the relative URI path
-   * @param data {Object} an object of extra values 
+   * @param data {Object} an object of extra values
    */
   var getRequestOptions = function(path, data) {
     var options = {
-      url: TINDER_HOST + "/" + path,
+      url: TINDER_HOST + path,
       json: data
     };
-    
+
     var headers = {
-        'User-Agent' : 'Tinder Android Version 2.2.3',
-        'os_version' : '16'
+        'User-Agent'      : 'Tinder Android Version 4.1.4',
+        'os_version'      : '21',
+        'platform'        : 'android',
+        'app-version'     : '809',
+        'Accept-Language' : 'en'
     };
-  
+
     if (xAuthToken) {
         headers['X-Auth-Token'] = xAuthToken;
     }
-    
+
     options.headers = headers;
-    
+
     return options;
   };
 
   /**
    * Issues a GET request to the tinder API
    * @param {String} path the relative path
-   * @param {Object} data an object containing extra values 
-   * @param {Function} callback the callback to invoke when the request completes 
+   * @param {Object} data an object containing extra values
+   * @param {Function} callback the callback to invoke when the request completes
    */
   var tinderGet = function(path, data, callback) {
     var opts = getRequestOptions(path, data);
@@ -68,16 +72,16 @@ function TinderClient() {
 
   /**
    * Helper for transforming the request callback values
-   * @param {Function} callback the callback 
+   * @param {Function} callback the callback
    */
   var makeTinderCallback = function(callback) {
-    return function(error, res, body) {   
+    return function(error, res, body) {
       var data = null;
-      
+
       if (!error) {
         if (typeof body === "string")
         {
-          try 
+          try
           {
             data = JSON.parse(body);
           } catch (err) {
@@ -88,7 +92,11 @@ function TinderClient() {
           data = body;
         }
       }
-      
+
+      if (data && data.status && data.status !== 200) {
+        error = data;
+      }
+
       if (callback) {
         callback(error, data);
       }
@@ -101,27 +109,27 @@ function TinderClient() {
    * @param {Function} callback the callback to invoke when the request completes
    */
   this.getRecommendations = function(limit, callback) {
-    tinderGet('user/recs', 
+    tinderGet('user/recs',
       {
         limit: limit
       },
       makeTinderCallback(callback));
   };
-  
+
   /**
    * Sends a message to a user
-   * @param {String} userId the id of the user
+   * @param {String} matchId the id of the match
    * @param {String} message the message to send
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.sendMessage = function(userId, message, callback) {
-    tinderPost('user/matches/' + userId,
+  this.sendMessage = function(matchId, message, callback) {
+    tinderPost('user/matches/' + matchId,
       {
         message: message
       },
       makeTinderCallback(callback));
   };
-  
+
   /**
    * Swipes left for a user
    * @param {String} userId the id of the user
@@ -132,7 +140,7 @@ function TinderClient() {
       null,
       makeTinderCallback(callback));
   };
-  
+
   /**
    * Swipes right for a user
    * @param {String} userId the id of the user
@@ -143,31 +151,44 @@ function TinderClient() {
       null,
       makeTinderCallback(callback));
   };
-  
+
   /**
    * Authorize this tinder client
    * @param {String} fbToken the Facebook token. This will be obtained when authenticating the user
-   * @param {String} fbId the Facebook user id. 
+   * @param {String} fbId the Facebook user id.
    * @param {Function} callback the callback to invoke when the request completes
    */
   this.authorize = function(fbToken, fbId, callback) {
     tinderPost('auth',
       {
         facebook_token: fbToken,
-        facebook_id: fbId
+        // facebook_id: fbId // doesn't seem like we need the fbId now
+        locale: 'en'
       },
       function(error, res, body) {
         if (!error && body.token) {
           xAuthToken = body.token;
           _this.userId = body.user._id;
           _this.defaults = body;
+          callback = makeTinderCallback(callback);
           callback(error, res, body);
         } else if (body.error){
-          throw "Failed to authenticate: " + body.error
+          callback(new AuthError("Failed to authenticate: " + body.error));
         }
       });
   };
-  
+
+  /**
+   * Set auth token if you have it saved, no need to do fb login every time
+   */
+  this.setAuthToken = function(token) {
+    xAuthToken = token;
+  };
+
+  this.getAuthToken = function() {
+    return xAuthToken;
+  };
+
   /**
    * Returns whether this client is authorized
    * @return whether or not this client is authorized
@@ -175,15 +196,8 @@ function TinderClient() {
   this.isAuthorized = function() {
     return xAuthToken != null;
   }
-  
-  /**
-   * Returns the xAuthToken
-   * @return xAuthToken
-   */
-  this.getAuthToken = function() {
-    return xAuthToken || null;
-  }
-  
+
+
   /**
    * Returns client information and globals
    * Globals are used for interacting with tinder api limits
@@ -193,42 +207,46 @@ function TinderClient() {
   }
 
   /**
-   * Gets a list of new updates. This will be things like new messages, people who liked you, etc. 
+   * Gets a list of new updates. This will be things like new messages, people who liked you, etc.
    * @param {Function} callback the callback to invoke when the request completes
    */
   this.getUpdates = function(callback) {
     tinderPost('updates',
       {
-        last_activity_date: lastActivity.toISOString() 
+        last_activity_date: _this.lastActivity.toISOString()
       },
       makeTinderCallback(function(err, data){
-        lastActivity = new Date(data.last_activity_date);
-        
+        if (data && data.last_activity_date) {
+          _this.lastActivity = new Date(data.last_activity_date);
+        }
+
         if (callback) {
           callback(err, data);
         }
       }));
   };
-  
+
+
   /**
    * Gets the entire history for the user (all matches, messages, blocks, etc.)
-   * 
+   *
    * NOTE: Old messages seem to not be returned after a certain threshold. Not yet
    * sure what exactly that timeout is. The official client seems to get this update
-   * once when the app is installed then cache the results and only rely on the 
+   * once when the app is installed then cache the results and only rely on the
    * incremental updates
    * @param {Function} callback the callback to invoke when the request completes
    */
-  this.getHistory = function(callback) {
+  this.getHistory = function(last_activity_date, callback) {
+    if (typeof last_activity_date === 'undefined') { optionalArg = ''; }
     tinderPost('updates',
       {
-        last_activity_date: ""
+        last_activity_date: last_activity_date
       },
       makeTinderCallback(callback));
   };
-  
+
   /**
-   * Updates the position for this user 
+   * Updates the position for this user
    * @param {Number} lon the longitude
    * @param {Number} lat the latitutde
    * @param {Function} callback the callback to invoke when the request completes
@@ -241,7 +259,7 @@ function TinderClient() {
       },
       makeTinderCallback(callback));
   };
-  
+
   /**
    * Get user by id
    * @param {String} userId the id of the user
@@ -252,7 +270,29 @@ function TinderClient() {
       null,
       makeTinderCallback(callback));
   };
-  
+
+  this.getProfile = function(callback) {
+    tinderGet('profile',
+      null,
+      makeTinderCallback(callback));
+  }
+
 }
 
+/**
+ * Constructs a new instance of the AuthError class
+ *
+ * @constructor
+ * @this {AuthError}
+ */
+function AuthError(message, extra) {
+    Error.captureStackTrace && Error.captureStackTrace(this, this.constructor);
+    this.name = this.constructor.name;
+    this.message = message;
+    this.extra = extra;
+};
+
+util.inherits(AuthError, Error);
+
 exports.TinderClient = TinderClient;
+exports.AuthError = AuthError;
