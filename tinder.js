@@ -71,6 +71,18 @@ function TinderClient(){
   };
 
   /**
+   * Issues a DELETE request to the tinder API
+   * @param {String} path the relative path
+   * @param {Object} data an object containing extra values
+   * @param {Function} callback the callback to invoke when the request completes
+   */
+  var tinderDelete = function(path, data, callback){
+    var opts = getRequestOptions(path, data);
+    opts.method = 'DELETE';
+    request(opts, callback);
+  };
+
+  /**
    * Helper for transforming the request callback values
    * @param {Function} callback the callback
    */
@@ -275,8 +287,13 @@ function TinderClient(){
     tinderGet('profile',
       null,
       makeTinderCallback(callback));
-  }
+  };
 
+  this.unmatch = function (matchId, callback) {
+    tinderDelete('user/matches/' + matchId,
+      null,
+      makeTinderCallback(callback));
+  }
 }
 
 /**
